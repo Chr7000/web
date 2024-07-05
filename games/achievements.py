@@ -15,7 +15,6 @@ class AchievementLevel(StrEnum):
     GOLD = "gold"
     SILVER = "silver"
     BRONZE = "bronze"
-    BASE = "base"
     NO_LEVEL = "no_level"
 
 
@@ -55,7 +54,7 @@ class DNFAchievement(Achievement):
 
 class TopAchievement(Achievement):
     name = "Top"
-    description = "Placed top (10/5/3/1) total sips in a season"
+    description = "Placed top (10/5/3) total sips in a season"
     icon = "trophy-cup.svg"
 
     def get_level(user):
@@ -70,26 +69,22 @@ class TopAchievement(Achievement):
             )
             top5 = top10[:5]
             top3 = top10[:3]
-            top = top10[:1]
 
-            if {"user": user.id} in top:
+            if {"user": user.id} in top3:
                 highest_rank = AchievementLevel.GOLD
                 break
-            elif {"user": user.id} in top3:
-                highest_rank = AchievementLevel.SILVER
-                break
             elif {"user": user.id} in top5:
-                highest_rank = AchievementLevel.BRONZE
+                highest_rank = AchievementLevel.SILVER
             elif {"user": user.id} in top10:
-                if highest_rank != AchievementLevel.BRONZE:
-                    highest_rank = AchievementLevel.BASE
+                if highest_rank != AchievementLevel.SILVER:
+                    highest_rank = AchievementLevel.BRONZE
 
         return highest_rank
 
 
 class FastGameAchievement(Achievement):
     name = "Fast Game"
-    description = "Finished a game in less than (30/20/15/10) minutes"
+    description = "Finished a game in less than (45/30/15) minutes"
     icon = "stopwatch.svg"
 
     def get_level(user):
@@ -101,7 +96,7 @@ class FastGameAchievement(Achievement):
                     )
                 )
             )
-            .filter(duration__lt=datetime.timedelta(minutes=10))
+            .filter(duration__lt=datetime.timedelta(minutes=15))
             .exists()
         ):
             return AchievementLevel.GOLD
@@ -113,7 +108,7 @@ class FastGameAchievement(Achievement):
                     )
                 )
             )
-            .filter(duration__lt=datetime.timedelta(minutes=15))
+            .filter(duration__lt=datetime.timedelta(minutes=30))
             .exists()
         ):
             return AchievementLevel.SILVER
@@ -125,22 +120,10 @@ class FastGameAchievement(Achievement):
                     )
                 )
             )
-            .filter(duration__lt=datetime.timedelta(minutes=20))
+            .filter(duration__lt=datetime.timedelta(minutes=45))
             .exists()
         ):
             return AchievementLevel.BRONZE
-        elif (
-            Game.add_durations(
-                Game.objects.filter(
-                    gameplayer__in=user.gameplayer_set.filter(
-                        dnf=False, game__dnf=False
-                    )
-                )
-            )
-            .filter(duration__lt=datetime.timedelta(minutes=30))
-            .exists()
-        ):
-            return AchievementLevel.BASE
         else:
             return AchievementLevel.NO_LEVEL
 
@@ -163,61 +146,57 @@ class DanishDSTAchievement(Achievement):
             query |= Q(start_datetime__lt=dt, end_datetime__gt=dt)
 
         if user.games.filter(query).exists():
-            return AchievementLevel.BASE
+            return AchievementLevel.GOLD
         return AchievementLevel.NO_LEVEL
 
 
 class TheBarrelAchievement(Achievement):
     name = "The Barrel"
-    description = "Consumed (100/1000/2000/4000) beers in-game"
+    description = "Consumed (100/250/500) beers in-game"
     icon = "barrel.svg"
 
     def get_level(user):
         total_sips = user.stats_for_season(all_time_season).total_sips / 14
-        if total_sips >= 4000:
+        if total_sips >= 500:
             return AchievementLevel.GOLD
-        elif total_sips >= 2000:
+        elif total_sips >= 250:
             return AchievementLevel.SILVER
-        elif total_sips >= 1000:
-            return AchievementLevel.BRONZE
         elif total_sips >= 100:
-            return AchievementLevel.BASE
+            return AchievementLevel.BRONZE
         return AchievementLevel.NO_LEVEL
 
 
 class BundeCampAchievement(Achievement):
     name = "Chug Camp"
-    description = "Got (50/100/250/500) chugs in-game"
+    description = "Got (50/75/100) chugs in-game"
     icon = "ace.svg"
 
     def get_level(user):
         total_chugs = user.stats_for_season(all_time_season).total_chugs
-        if total_chugs >= 500:
+        if total_chugs >= 100:
             return AchievementLevel.GOLD
-        elif total_chugs >= 250:
+        elif total_chugs >= 75:
             return AchievementLevel.SILVER
-        elif total_chugs >= 100:
-            return AchievementLevel.BRONZE
         elif total_chugs >= 50:
-            return AchievementLevel.BASE
+            return AchievementLevel.BRONZE
         return AchievementLevel.NO_LEVEL
 
 
 class StudyHardAchievement(Achievement):
     name = "Study Hard"
-    description = "Spend at least the amount of time corresponding to (2.5/Quarter/Semester/Year) ECTS in game"
+    description = (
+        "Spend at least the amount of time corresponding to (2.5/5/10) ECTS in game"
+    )
     icon = "diploma.svg"
 
     def get_level(user):
         ects = user.stats_for_season(all_time_season).approx_ects
-        if ects >= 60:
+        if ects >= 10:
             return AchievementLevel.GOLD
-        elif ects >= 30:
+        elif ects >= 5:
             return AchievementLevel.SILVER
-        elif ects >= 15:
-            return AchievementLevel.BRONZE
         elif ects >= 2.5:
-            return AchievementLevel.BASE
+            return AchievementLevel.BRONZE
         return AchievementLevel.NO_LEVEL
 
 
